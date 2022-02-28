@@ -1,6 +1,6 @@
 # resnet-tinyimagenet
 
-I trained ResNet models using the [Tiny ImageNet](https://www.kaggle.com/c/tiny-imagenet) dataset. I have not tune any of the hyperparameters. This implementation uses [PyTorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning).
+I trained ResNet models using the [Tiny ImageNet](https://www.kaggle.com/c/tiny-imagenet) dataset. This implementation uses [PyTorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning).
 
 ```python
 hparams = {
