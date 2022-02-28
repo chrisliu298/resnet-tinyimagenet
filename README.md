@@ -10,6 +10,7 @@ hparams = {
     "max_epochs": 50,
     "weight_decay": 5e-4,
     "batch_size": 128,
+    "seed": 12345,
 }
 ```
 
