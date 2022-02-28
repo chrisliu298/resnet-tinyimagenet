@@ -16,3 +16,5 @@ hparams = {
 |  Model   | Test accuracy |
 | :------: | :-----------: |
 | resnet18 |    0.6847     |
+| resnet34 |    0.7009     |
+| resnet50 |    0.7214     |
