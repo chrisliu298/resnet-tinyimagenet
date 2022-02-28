@@ -13,8 +13,10 @@ hparams = {
 }
 ```
 
-|  Model   | Test accuracy |
-| :------: | :-----------: |
-| resnet18 |    0.6847     |
-| resnet34 |    0.7009     |
-| resnet50 |    0.7214     |
+|   Model   | Test accuracy |
+| :-------: | :-----------: |
+| resnet18  |    0.6847     |
+| resnet34  |    0.7009     |
+| resnet50  |    0.7214     |
+| resnet101 |    0.7360     |
+| resnet152 |    0.7444     |

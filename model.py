@@ -32,14 +32,14 @@ resnet_configs = {
 class ResNet(LightningModule):
     def __init__(
         self,
-        model_name="resnet18",
-        pretrained=True,
-        output_size=200,
-        lr=0.1,
-        batch_size=128,
-        weight_decay=1e-4,
-        replace_conv1=True,
-        replace_maxpool=True,
+        model_name,
+        pretrained,
+        output_size,
+        lr,
+        batch_size,
+        weight_decay,
+        keep_conv1,
+        keep_maxpool,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -47,11 +47,11 @@ class ResNet(LightningModule):
         self.model = resnet_configs[self.hparams.model_name](
             pretrained=self.hparams.pretrained
         )
-        if self.hparams.replace_conv1:
+        if not self.hparams.keep_conv1:
             self.model.conv1 = nn.Conv2d(
                 3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
             )
-        if self.hparams.replace_maxpool:
+        if not self.hparams.keep_maxpool:
             self.model.maxpool = nn.Identity()
         self.model.fc = (
             nn.Linear(512, self.hparams.output_size)

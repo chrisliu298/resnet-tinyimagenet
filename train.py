@@ -1,48 +1,53 @@
 import os
 
 import wandb
-from easydict import EasyDict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, TQDMProgressBar
 from pytorch_lightning.loggers import WandbLogger
+from torchinfo import summary
 
+from cmd_args import parse_args
 from dataset import DataModule
 from model import ResNet, resnet_configs
 
-for model_name in list(resnet_configs.keys()):
-    config = EasyDict(
-        model_name=model_name,
-        pretrained=True,
-        output_size=200,
-        replace_conv1=True,
-        replace_maxpool=True,
-        lr=0.1,
-        max_epochs=50,
-        weight_decay=5e-4,
-        batch_size=128,
-        seed=12345,
-        num_workers=int(os.cpu_count() / 2),
-    )
-    seed_everything(config.seed)
-    wandb.init(project="resnet-tinyimagenet", entity="chrisliu298", config=config)
 
+def main():
+    args = parse_args()
+    if args.model == "all":
+        for model_name in resnet_configs.keys():
+            args.model = model_name
+            setup(args)
+            train(args)
+    else:
+        setup(args)
+        train(args)
+
+
+def setup(args):
+    seed_everything(args.seed)
+    wandb.init(project=args.project_name, entity="chrisliu298", config=vars(args))
+
+
+def train(args):
     datamodule = DataModule(
-        batch_size=config.batch_size, num_workers=config.num_workers
+        batch_size=args.batch_size, num_workers=int(os.cpu_count() / 2)
     )
     model = ResNet(
-        model_name=config.model_name,
-        pretrained=config.pretrained,
-        output_size=config.output_size,
-        lr=config.lr,
-        batch_size=config.batch_size,
-        weight_decay=config.weight_decay,
-        replace_conv1=config.replace_conv1,
-        replace_maxpool=config.replace_maxpool,
+        model_name=args.model,
+        pretrained=args.pretrained,
+        output_size=args.output_size,
+        lr=args.lr,
+        batch_size=args.batch_size,
+        weight_decay=args.weight_decay,
+        keep_conv1=args.keep_conv1,
+        keep_maxpool=args.keep_maxpool,
     )
+    if args.verbose:
+        summary(model, input_size=(1, 3, 64, 64))
 
     trainer = Trainer(
         gpus=-1,
-        max_epochs=config.max_epochs,
+        max_epochs=args.max_epochs,
         logger=WandbLogger(
             save_dir="wandb/",
             project="tiny-imagenet",
@@ -55,5 +60,9 @@ for model_name in list(resnet_configs.keys()):
         enable_model_summary=False,
     )
     trainer.fit(model, datamodule=datamodule)
-    result = trainer.test(model, datamodule=datamodule)
+    trainer.test(model, datamodule=datamodule)
     wandb.finish(quiet=True)
+
+
+if __name__ == "__main__":
+    main()
