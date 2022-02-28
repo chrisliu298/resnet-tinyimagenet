@@ -2,14 +2,13 @@ from glob import glob
 
 from PIL import Image
 from pytorch_lightning import LightningDataModule
-from torch import normal
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 
 class TrainDataset(Dataset):
     def __init__(self, id, transform=None):
-        self.filenames = glob("/content/tiny-imagenet-200/train/*/*/*.JPEG")
+        self.filenames = glob("tiny-imagenet-200/train/*/*/*.JPEG")
         self.transform = transform
         self.id_dict = id
 
@@ -19,7 +18,7 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         image_path = self.filenames[idx]
         image = Image.open(image_path)
-        label = self.id_dict[image_path.split("/")[4]]
+        label = self.id_dict[image_path.split("/")[2]]
         if self.transform:
             image = self.transform(image)
         return image, label
@@ -27,12 +26,12 @@ class TrainDataset(Dataset):
 
 class TestDataset(Dataset):
     def __init__(self, id, transform=None):
-        self.filenames = glob("/content/tiny-imagenet-200/val/images/*.JPEG")
+        self.filenames = glob("tiny-imagenet-200/val/images/*.JPEG")
         self.transform = transform
         self.id_dict = id
         self.class_dict = {}
         for _, line in enumerate(
-            open("/content/tiny-imagenet-200/val/val_annotations.txt", "r")
+            open("tiny-imagenet-200/val/val_annotations.txt", "r")
         ):
             a = line.split("\t")
             img, cls_id = a[0], a[1]
@@ -55,7 +54,7 @@ class DataModule(LightningDataModule):
         super().__init__()
         self.save_hyperparameters()
         self.id_dict = {}
-        for i, line in enumerate(open("/content/tiny-imagenet-200/wnids.txt", "r")):
+        for i, line in enumerate(open("tiny-imagenet-200/wnids.txt", "r")):
             self.id_dict[line.replace("\n", "")] = i
 
         normalize = transforms.Normalize(

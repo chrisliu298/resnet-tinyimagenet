@@ -9,7 +9,7 @@ from pytorch_lightning.loggers import WandbLogger
 from dataset import DataModule
 from model import ResNet, resnet_configs
 
-for model_name in resnet_configs.keys():
+for model_name in list(resnet_configs.keys()):
     config = EasyDict(
         model_name=model_name,
         pretrained=True,
@@ -18,7 +18,7 @@ for model_name in resnet_configs.keys():
         replace_maxpool=True,
         lr=0.1,
         max_epochs=50,
-        weight_decay=1e-4,
+        weight_decay=5e-4,
         batch_size=128,
         seed=12345,
         num_workers=int(os.cpu_count() / 2),
@@ -49,9 +49,10 @@ for model_name in resnet_configs.keys():
         ),
         callbacks=[
             LearningRateMonitor(logging_interval="step"),
-            TQDMProgressBar(refresh_rate=10),
+            TQDMProgressBar(refresh_rate=0),
         ],
         benchmark=True,
+        enable_model_summary=False,
     )
     trainer.fit(model, datamodule=datamodule)
     result = trainer.test(model, datamodule=datamodule)

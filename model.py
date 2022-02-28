@@ -111,13 +111,12 @@ class ResNet(LightningModule):
             momentum=0.9,
             weight_decay=self.hparams.weight_decay,
         )
-        steps_per_epoch = 100000 // self.hparams.batch_size + 1
         scheduler_dict = {
             "scheduler": OneCycleLR(
                 optimizer,
                 0.1,
                 epochs=self.trainer.max_epochs,
-                steps_per_epoch=steps_per_epoch,
+                steps_per_epoch=100000 // self.hparams.batch_size + 1,
             ),
             "interval": "step",
         }
