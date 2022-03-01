@@ -31,9 +31,11 @@ def setup(args):
 
 def train(args):
     refresh_rate = 10 if args.verbose else 0
-    
+
     datamodule = DataModule(
-        batch_size=args.batch_size, num_workers=int(os.cpu_count() / 2)
+        path=args.dataset_path,
+        batch_size=args.batch_size,
+        num_workers=int(os.cpu_count() / 2),
     )
     model = ResNet(
         model_name=args.model,

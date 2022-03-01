@@ -7,8 +7,8 @@ from torchvision import transforms
 
 
 class TrainDataset(Dataset):
-    def __init__(self, id, transform=None):
-        self.filenames = glob("tiny-imagenet-200/train/*/*/*.JPEG")
+    def __init__(self, path, id, transform=None):
+        self.filenames = glob(f"{path}/train/*/*/*.JPEG")
         self.transform = transform
         self.id_dict = id
 
@@ -25,14 +25,12 @@ class TrainDataset(Dataset):
 
 
 class TestDataset(Dataset):
-    def __init__(self, id, transform=None):
-        self.filenames = glob("tiny-imagenet-200/val/images/*.JPEG")
+    def __init__(self, path, id, transform=None):
+        self.filenames = glob(f"{path}/val/images/*.JPEG")
         self.transform = transform
         self.id_dict = id
         self.class_dict = {}
-        for _, line in enumerate(
-            open("tiny-imagenet-200/val/val_annotations.txt", "r")
-        ):
+        for _, line in enumerate(open(f"{path}/val/val_annotations.txt", "r")):
             a = line.split("\t")
             img, cls_id = a[0], a[1]
             self.class_dict[img] = self.id_dict[cls_id]
@@ -50,11 +48,11 @@ class TestDataset(Dataset):
 
 
 class DataModule(LightningDataModule):
-    def __init__(self, batch_size, num_workers):
+    def __init__(self, path, batch_size, num_workers):
         super().__init__()
         self.save_hyperparameters()
         self.id_dict = {}
-        for i, line in enumerate(open("tiny-imagenet-200/wnids.txt", "r")):
+        for i, line in enumerate(open(f"{path}/wnids.txt", "r")):
             self.id_dict[line.replace("\n", "")] = i
 
         normalize = transforms.Normalize(
@@ -81,9 +79,11 @@ class DataModule(LightningDataModule):
 
     def setup(self, stage=None):
         self.train_dataset = TrainDataset(
-            id=self.id_dict, transform=self.train_transform
+            path=self.hparams.path, id=self.id_dict, transform=self.train_transform
         )
-        self.test_dataset = TestDataset(id=self.id_dict, transform=self.test_transform)
+        self.test_dataset = TestDataset(
+            path=self.hparams.path, id=self.id_dict, transform=self.test_transform
+        )
 
     def train_dataloader(self):
         return DataLoader(
