@@ -14,6 +14,7 @@ parser.add_argument("--batch_size", type=int, default=128)
 parser.add_argument("--seed", type=int, default=12345)
 parser.add_argument("--model", type=str, default="all")
 parser.add_argument("--verbose", type=int, default=1)
+parser.add_argument("--use_wandb", action="store_true")
 
 
 def parse_args():

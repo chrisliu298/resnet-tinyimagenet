@@ -25,7 +25,8 @@ def main():
 
 def setup(args):
     seed_everything(args.seed)
-    wandb.init(project=args.project_name, entity="chrisliu298", config=vars(args))
+    if args.use_wandb:
+        wandb.init(project=args.project_name, entity="chrisliu298", config=vars(args))
 
 
 def train(args):
@@ -51,7 +52,9 @@ def train(args):
         logger=WandbLogger(
             save_dir="wandb/",
             project="tiny-imagenet",
-        ),
+        )
+        if args.use_wandb
+        else None,
         callbacks=[
             LearningRateMonitor(logging_interval="step"),
             TQDMProgressBar(refresh_rate=0),
@@ -61,7 +64,8 @@ def train(args):
     )
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule)
-    wandb.finish(quiet=True)
+    if args.use_wandb:
+        wandb.finish(quiet=True)
 
 
 if __name__ == "__main__":
