@@ -30,6 +30,8 @@ def setup(args):
 
 
 def train(args):
+    refresh_rate = 10 if args.verbose else 0
+    
     datamodule = DataModule(
         batch_size=args.batch_size, num_workers=int(os.cpu_count() / 2)
     )
@@ -57,7 +59,7 @@ def train(args):
         else None,
         callbacks=[
             LearningRateMonitor(logging_interval="step"),
-            TQDMProgressBar(refresh_rate=0),
+            TQDMProgressBar(refresh_rate=refresh_rate),
         ],
         benchmark=True,
         enable_model_summary=False,

@@ -2,7 +2,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--project_name", type=str, default="resnet-tinyimagenet")
+parser.add_argument("--project_name", type=str, default="tiny-imagenet")
 parser.add_argument("--pretrained", action="store_true")
 parser.add_argument("--output_size", type=int, default=200)
 parser.add_argument("--keep_conv1", action="store_true")

@@ -14,6 +14,14 @@ hparams = {
 }
 ```
 
+```bash
+python3 train.py \
+    --pretrained \
+    --model="resnet50" \
+    --verbose=1
+```
+
+
 |   Model   | Test accuracy |
 | :-------: | :-----------: |
 | resnet18  |    0.6847     |
