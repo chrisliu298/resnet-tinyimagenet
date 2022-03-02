@@ -16,16 +16,15 @@ hparams = {
 
 ```bash
 python3 train.py \
+    --dataset_path="tiny-imagenet-200" \
     --pretrained \
     --model="resnet50" \
     --verbose=1
 ```
 
 
-|   Model   | Test accuracy |
-| :-------: | :-----------: |
-| resnet18  |    0.6847     |
-| resnet34  |    0.7009     |
-| resnet50  |    0.7214     |
-| resnet101 |    0.7360     |
-| resnet152 |    0.7444     |
+|  Model   | Test accuracy |
+| :------: | :-----------: |
+| resnet18 |    0.6847     |
+| resnet34 |    0.7009     |
+| resnet50 |    0.7214     |
