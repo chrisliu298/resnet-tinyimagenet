@@ -23,11 +23,13 @@ python3 train.py \
 ```
 
 
-|  Model   | Test accuracy |
-| :------: | :-----------: |
-| resnet18 |    0.6847     |
-| resnet34 |    0.7009     |
-| resnet50 |    0.7214     |
+|     Model     | Test accuracy |
+| :-----------: | :-----------: |
+|   resnet18    |    0.6781     |
+|   resnet34    |    0.6994     |
+|   resnet50    |    0.7151     |
+|   resnext50   |    0.7256     |
+| wide_resnet50 |               |
 
 
 ## Acknowledgment
