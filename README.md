@@ -28,3 +28,8 @@ python3 train.py \
 | resnet18 |    0.6847     |
 | resnet34 |    0.7009     |
 | resnet50 |    0.7214     |
+
+
+# Acknowledgment
+
+The dataset loading code in [`dataset.py`](dataset.py) is adapted from https://github.com/pranavphoenix/TinyImageNetLoader.

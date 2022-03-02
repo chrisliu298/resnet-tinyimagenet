@@ -5,6 +5,9 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
+# The dataset loading code here is adapted from
+# https://github.com/pranavphoenix/TinyImageNetLoader
+
 
 class TrainDataset(Dataset):
     def __init__(self, path, id, transform=None):
