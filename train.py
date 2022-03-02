@@ -65,7 +65,9 @@ def train(args):
         ],
         benchmark=True,
         enable_model_summary=False,
+        # auto_scale_batch_size="power",
     )
+    # trainer.tune(model, datamodule=datamodule)
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule)
     if args.use_wandb:
