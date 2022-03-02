@@ -29,7 +29,7 @@ python3 train.py \
 |   resnet34    |    0.6994     |
 |   resnet50    |    0.7151     |
 |   resnext50   |    0.7256     |
-| wide_resnet50 |               |
+| wide_resnet50 |    0.7303     |
 
 
 ## Acknowledgment
