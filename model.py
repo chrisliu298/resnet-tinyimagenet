@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,39 +30,9 @@ resnet_configs = {
 }
 
 
-class ResNet(LightningModule):
-    def __init__(
-        self,
-        model_name,
-        pretrained,
-        output_size,
-        lr,
-        batch_size,
-        weight_decay,
-        keep_conv1,
-        keep_maxpool,
-    ):
+class BaseModel(LightningModule):
+    def __init__(self):
         super().__init__()
-        self.save_hyperparameters()
-        assert self.hparams.model_name in resnet_configs.keys()
-        self.model = resnet_configs[self.hparams.model_name](
-            pretrained=self.hparams.pretrained
-        )
-        if not self.hparams.keep_conv1:
-            self.model.conv1 = nn.Conv2d(
-                3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
-            )
-        if not self.hparams.keep_maxpool:
-            self.model.maxpool = nn.Identity()
-        self.model.fc = (
-            nn.Linear(512, self.hparams.output_size)
-            if self.hparams.model_name in ["resnet18", "resnet34"]
-            else nn.Linear(2048, self.hparams.output_size)
-        )
-
-    def forward(self, x):
-        out = self.model(x)
-        return out
 
     def evaluate(self, batch, stage=None):
         x, y = batch
@@ -116,8 +87,85 @@ class ResNet(LightningModule):
                 optimizer,
                 0.1,
                 epochs=self.trainer.max_epochs,
-                steps_per_epoch=100000 // self.hparams.batch_size + 1,
+                steps_per_epoch=50000 // self.hparams.batch_size + 1,
             ),
             "interval": "step",
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler_dict}
+
+
+class ResNet(LightningModule):
+    def __init__(
+        self,
+        model_name,
+        pretrained,
+        output_size,
+        lr,
+        batch_size,
+        weight_decay,
+        keep_conv1,
+        keep_maxpool,
+    ):
+        super().__init__()
+        self.save_hyperparameters()
+        assert self.hparams.model_name in resnet_configs.keys()
+        self.model = resnet_configs[self.hparams.model_name](
+            pretrained=self.hparams.pretrained
+        )
+        if not self.hparams.keep_conv1:
+            self.model.conv1 = nn.Conv2d(
+                3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+            )
+        if not self.hparams.keep_maxpool:
+            self.model.maxpool = nn.Identity()
+        self.model.fc = (
+            nn.Linear(512, self.hparams.output_size)
+            if self.hparams.model_name in ["resnet18", "resnet34"]
+            else nn.Linear(2048, self.hparams.output_size)
+        )
+
+    def forward(self, x):
+        out = self.model(x)
+        return out
+
+
+class CNN(BaseModel):
+    def __init__(
+        self, n_units, dropout, output_size, lr, batch_size, weight_decay, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.save_hyperparameters()
+        self._n_units = copy.copy(n_units)
+        self._layers = []
+        # [3, 16, 16, 16, 10]
+        for i in range(1, len(n_units) - 1):
+            layer = nn.Conv2d(n_units[i - 1], n_units[i], 3)
+            self._layers.append(layer)
+            name = f"conv{i}"
+            self.add_module(name, layer)
+            # layer = nn.MaxPool2d(2)
+            # self._layers.append(layer)
+            # name = f"maxpool{i}"
+            # self.add_module(name, layer)
+            if dropout > 0.0:
+                layer = nn.Dropout(dropout)
+                self._layers.append(layer)
+                name = f"dropout{i}"
+                self.add_module(name, layer)
+
+        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(n_units[-2] * 4, n_units[-1])
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(2)
+
+    def forward(self, x):
+        # x = self.maxpool(self.relu(self._layers[0](x)))
+        x = self.relu(self.maxpool(self._layers[0](x)))
+        # x = self.relu(self._layers[0](x))
+        for layer in self._layers[1:]:
+            # x = self.maxpool(self.relu(layer(x)))
+            x = self.relu(self.maxpool(layer(x)))
+            # x = self.relu(layer(x))
+        out = self.fc(self.flatten(x))
+        return out
