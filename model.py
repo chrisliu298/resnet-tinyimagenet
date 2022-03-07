@@ -1,4 +1,5 @@
 import copy
+from multiprocessing.sharedctypes import Value
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,29 +10,22 @@ from torchvision.models import (
     resnet18,
     resnet34,
     resnet50,
-    resnet101,
-    resnet152,
-    resnext50_32x4d,
-    resnext101_32x8d,
     wide_resnet50_2,
     wide_resnet101_2,
 )
+from torchvision.models import efficientnet_b7
 
 resnet_configs = {
     "resnet18": resnet18,
     "resnet34": resnet34,
     "resnet50": resnet50,
-    # "resnet101": resnet101,
-    # "resnet152": resnet152,
-    "resnext50": resnext50_32x4d,
-    # "resnext101": resnext101_32x8d,
     "wide_resnet50": wide_resnet50_2,
-    # "wide_resnet101": wide_resnet101_2,
+    "wide_resnet101": wide_resnet101_2,
 }
 
 
 class BaseModel(LightningModule):
-    def __init__(self):
+    def __init__(self, output_size, lr, batch_size, weight_decay, optimizer, momentum):
         super().__init__()
 
     def evaluate(self, batch, stage=None):
@@ -76,16 +70,30 @@ class BaseModel(LightningModule):
         self.log("avg_test_acc", avg_acc, logger=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(
-            self.parameters(),
-            lr=self.hparams.lr,
-            momentum=0.9,
-            weight_decay=self.hparams.weight_decay,
-        )
+        optimizer_fns = {
+            "sgd": torch.optim.SGD,
+            "rmsprop": torch.optim.RMSprop,
+        }
+
+        if self.hparams.optimizer in ["rmsprop", "sgd"]:
+            optimizer = optimizer_fns[self.hparams.optimizer](
+                self.parameters(),
+                lr=self.hparams.lr,
+                momentum=self.hparams.momentum,
+                weight_decay=self.hparams.weight_decay,
+            )
+        elif self.hparams.optimizer == "adam":
+            optimizer = torch.optim.Adam(
+                self.parameters(),
+                lr=self.hparams.lr,
+                weight_decay=self.hparams.weight_decay,
+            )
+        else:
+            raise ValueError("Optimizer {self.hparams.optimizer} is invalid.")
         scheduler_dict = {
             "scheduler": OneCycleLR(
                 optimizer,
-                0.1,
+                max_lr=self.hparams.lr,
                 epochs=self.trainer.max_epochs,
                 steps_per_epoch=50000 // self.hparams.batch_size + 1,
             ),
@@ -94,19 +102,16 @@ class BaseModel(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler_dict}
 
 
-class ResNet(LightningModule):
+class ResNet(BaseModel):
     def __init__(
         self,
         model_name,
         pretrained,
-        output_size,
-        lr,
-        batch_size,
-        weight_decay,
         keep_conv1,
         keep_maxpool,
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.save_hyperparameters()
         assert self.hparams.model_name in resnet_configs.keys()
         self.model = resnet_configs[self.hparams.model_name](
@@ -129,43 +134,63 @@ class ResNet(LightningModule):
         return out
 
 
-class CNN(BaseModel):
+class EfficientNet(BaseModel):
     def __init__(
-        self, n_units, dropout, output_size, lr, batch_size, weight_decay, **kwargs
+        self,
+        model_name,
+        pretrained,
+        keep_conv1,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.save_hyperparameters()
-        self._n_units = copy.copy(n_units)
-        self._layers = []
-        # [3, 16, 16, 16, 10]
-        for i in range(1, len(n_units) - 1):
-            layer = nn.Conv2d(n_units[i - 1], n_units[i], 3)
-            self._layers.append(layer)
-            name = f"conv{i}"
-            self.add_module(name, layer)
-            # layer = nn.MaxPool2d(2)
-            # self._layers.append(layer)
-            # name = f"maxpool{i}"
-            # self.add_module(name, layer)
-            if dropout > 0.0:
-                layer = nn.Dropout(dropout)
-                self._layers.append(layer)
-                name = f"dropout{i}"
-                self.add_module(name, layer)
-
-        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.flatten = nn.Flatten()
-        self.fc = nn.Linear(n_units[-2] * 4, n_units[-1])
-        self.relu = nn.ReLU()
-        self.maxpool = nn.MaxPool2d(2)
+        self.model = efficientnet_b7(pretrained=self.hparams.pretrained)
+        if not self.hparams.keep_conv1:
+            self.model.features[0] = nn.Conv2d(
+                3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+            )
+        self.model.classifier[1] = nn.Linear(2560, self.hparams.output_size)
 
     def forward(self, x):
-        # x = self.maxpool(self.relu(self._layers[0](x)))
-        x = self.relu(self.maxpool(self._layers[0](x)))
-        # x = self.relu(self._layers[0](x))
-        for layer in self._layers[1:]:
-            # x = self.maxpool(self.relu(layer(x)))
-            x = self.relu(self.maxpool(layer(x)))
-            # x = self.relu(layer(x))
-        out = self.fc(self.flatten(x))
+        out = self.model(x)
         return out
+
+
+# class CNN(BaseModel):
+#     def __init__(self, n_units, dropout, **kwargs):
+#         super().__init__(**kwargs)
+#         self.save_hyperparameters()
+#         self._n_units = copy.copy(n_units)
+#         self._layers = []
+#         # [3, 16, 16, 16, 10]
+#         for i in range(1, len(n_units) - 1):
+#             layer = nn.Conv2d(n_units[i - 1], n_units[i], 3)
+#             self._layers.append(layer)
+#             name = f"conv{i}"
+#             self.add_module(name, layer)
+#             # layer = nn.MaxPool2d(2)
+#             # self._layers.append(layer)
+#             # name = f"maxpool{i}"
+#             # self.add_module(name, layer)
+#             if dropout > 0.0:
+#                 layer = nn.Dropout(dropout)
+#                 self._layers.append(layer)
+#                 name = f"dropout{i}"
+#                 self.add_module(name, layer)
+
+#         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+#         self.flatten = nn.Flatten()
+#         self.fc = nn.Linear(n_units[-2] * 4, n_units[-1])
+#         self.relu = nn.ReLU()
+#         self.maxpool = nn.MaxPool2d(2)
+
+#     def forward(self, x):
+#         # x = self.maxpool(self.relu(self._layers[0](x)))
+#         x = self.relu(self.maxpool(self._layers[0](x)))
+#         # x = self.relu(self._layers[0](x))
+#         for layer in self._layers[1:]:
+#             # x = self.maxpool(self.relu(layer(x)))
+#             x = self.relu(self.maxpool(layer(x)))
+#             # x = self.relu(layer(x))
+#         out = self.fc(self.flatten(x))
+#         return out
