@@ -1,5 +1,3 @@
-import copy
-from multiprocessing.sharedctypes import Value
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,13 +5,13 @@ from pytorch_lightning import LightningModule
 from torch.optim.lr_scheduler import OneCycleLR
 from torchmetrics.functional import accuracy
 from torchvision.models import (
+    efficientnet_b7,
     resnet18,
     resnet34,
     resnet50,
     wide_resnet50_2,
     wide_resnet101_2,
 )
-from torchvision.models import efficientnet_b7
 
 resnet_configs = {
     "resnet18": resnet18,
