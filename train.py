@@ -58,7 +58,7 @@ def train(args):
             momentum=args.momentum,
             keep_conv1=args.keep_conv1,
         )
-    else:
+    elif "resnet" in args.model_name:
         model = ResNet(
             model_name=args.model_name,
             pretrained=args.pretrained,
@@ -71,6 +71,8 @@ def train(args):
             keep_conv1=args.keep_conv1,
             keep_maxpool=args.keep_maxpool,
         )
+    else:
+        raise ValueError(f"Model {args.model_name} is invalid.")
     # if args.verbose:
     summary(model, input_size=(1, 3, 64, 64))
 
@@ -92,6 +94,7 @@ def train(args):
         if args.use_wandb
         else True,
         callbacks=[
+            checkpoint_callback,
             LearningRateMonitor(logging_interval="step"),
             TQDMProgressBar(refresh_rate=refresh_rate),
         ],
